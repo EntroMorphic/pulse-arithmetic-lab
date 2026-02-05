@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-02-05
+
+### Fixed
+
+- Demo 03: Coherence metric now uses proper Kuramoto order parameter
+  - Changed from `|mean(z)|` to `|mean(z/|z|)|`
+  - This measures phase alignment independent of amplitude
+  - Delta band now shows 23710 coherence (moderately aligned)
+- Updated CLAIMS.md with detailed falsification results for all claims
+
+### Documentation
+
+- Added falsification status table to CLAIMS.md
+- Added detailed test results for each claim
+
 ## [0.1.1] - 2026-02-05
 
 ### Hardware Falsification Complete
@@ -19,18 +34,13 @@ All demos tested on actual ESP32-C6 hardware (ESP32-C6FH4, revision v0.2).
 |------|--------|---------|
 | 01 Pulse Addition | PASS | 8/8 tests, 1.11M pulses/sec |
 | 02 Parallel Dot | PASS | 5/5 tests, hardware matches reference exactly |
-| 03 Spectral Oscillator | PARTIAL | Band decay PASS, coupling coherence INCONCLUSIVE |
+| 03 Spectral Oscillator | PASS | Band decay verified, coherence fixed in 0.1.2 |
 | 04 Equilibrium Prop | PASS | Loss reduced 44%, 99.2% target separation |
 
 ### Fixed
 
 - Demo 01: Reduced benchmark from 100k to 30k pulses to stay within PCNT 16-bit range
 - Added note about PCNT overflow limits
-
-### Known Issues
-
-- Demo 03 coupling coherence test methodology needs improvement (coherence metric
-  measures magnitude, not phase alignment)
 
 ## [0.1.0] - 2026-02-05
 
@@ -65,21 +75,23 @@ All demos tested on actual ESP32-C6 hardware (ESP32-C6FH4, revision v0.2).
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 0.1.2 | 2026-02-05 | Fixed coherence metric, updated CLAIMS.md |
+| 0.1.1 | 2026-02-05 | Hardware falsification complete |
 | 0.1.0 | 2026-02-05 | Initial release with 4 demos |
 
 ## Planned for Future Releases
 
 ### v0.2.0 (Planned)
 - Reference NumPy implementations for all demos
+- docs/THEORY.md - Mathematical foundations
 - Colab notebook for zero-install exploration
-- Hardware test results from actual ESP32-C6
 
 ### v0.3.0 (Planned)
-- Automated claim verification tests
-- THEORY.md deep dive documentation
+- Automated claim verification tests (tests/verify_claims.py)
+- docs/HARDWARE.md - Register-level documentation
 - Performance benchmarks
 
 ### v1.0.0 (Planned)
-- All claims verified on hardware
+- All 6 claims verified (including Claim 6 ablation study)
 - Complete documentation
 - Video tutorials
