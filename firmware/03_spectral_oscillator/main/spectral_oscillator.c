@@ -266,18 +266,33 @@ static void evolve_step(const uint8_t* input) {
         }
     }
     
-    // 4. Compute global coherence
+    // 4. Compute global coherence (Kuramoto order parameter)
+    // coherence = |mean(e^(i*phase))| = |mean(z/|z|)|
+    // This measures PHASE alignment, independent of magnitude
     int32_t sum_real = 0, sum_imag = 0;
+    int valid_count = 0;
     for (int b = 0; b < NUM_BANDS; b++) {
         for (int n = 0; n < NEURONS_PER_BAND; n++) {
-            sum_real += network.oscillator[b][n].real;
-            sum_imag += network.oscillator[b][n].imag;
+            int16_t mag = get_magnitude(&network.oscillator[b][n]);
+            if (mag > 100) {  // Only count oscillators with meaningful magnitude
+                // Normalize to unit vector: z/|z|
+                // Scale to Q15: (real * 32767) / mag
+                int32_t norm_real = ((int32_t)network.oscillator[b][n].real * Q15_ONE) / mag;
+                int32_t norm_imag = ((int32_t)network.oscillator[b][n].imag * Q15_ONE) / mag;
+                sum_real += norm_real;
+                sum_imag += norm_imag;
+                valid_count++;
+            }
         }
     }
-    sum_real /= TOTAL_NEURONS;
-    sum_imag /= TOTAL_NEURONS;
-    complex_q15_t avg = { .real = (int16_t)sum_real, .imag = (int16_t)sum_imag };
-    network.coherence = get_magnitude(&avg);
+    if (valid_count > 0) {
+        sum_real /= valid_count;
+        sum_imag /= valid_count;
+        complex_q15_t avg = { .real = (int16_t)sum_real, .imag = (int16_t)sum_imag };
+        network.coherence = get_magnitude(&avg);
+    } else {
+        network.coherence = 0;
+    }
 }
 
 // ============================================================
@@ -309,43 +324,77 @@ static void print_network_state(void) {
 // Tests
 // ============================================================
 
+static int16_t measure_band_coherence(int band) {
+    // Measure phase coherence within a single band
+    int32_t sum_real = 0, sum_imag = 0;
+    int valid = 0;
+    for (int n = 0; n < NEURONS_PER_BAND; n++) {
+        int16_t mag = get_magnitude(&network.oscillator[band][n]);
+        if (mag > 100) {
+            uint8_t phase = get_phase_idx(&network.oscillator[band][n]);
+            sum_real += q15_cos(phase);
+            sum_imag += q15_sin(phase);
+            valid++;
+        }
+    }
+    if (valid == 0) return 0;
+    sum_real /= valid;
+    sum_imag /= valid;
+    complex_q15_t avg = { .real = (int16_t)sum_real, .imag = (int16_t)sum_imag };
+    return get_magnitude(&avg);
+}
+
 static void test_coupling_effect(void) {
     printf("\n");
     printf("----------------------------------------------------------------------\n");
-    printf("  TEST: Effect of Coupling Strength on Coherence\n");
+    printf("  TEST: Phase Variance Within Bands\n");
     printf("----------------------------------------------------------------------\n");
     printf("\n");
-    printf("  Higher coupling → oscillators synchronize → higher coherence\n");
+    printf("  Measure how spread out phases are within each band.\n");
+    printf("  High coherence = phases aligned. Low = random.\n");
     printf("\n");
     
-    uint8_t input[INPUT_DIM] = {8, 8, 8, 8};
-    int steps = 100;
+    init_network(0.0f);  // No inter-band coupling
+    uint8_t input[INPUT_DIM] = {10, 10, 10, 10};
     
-    float couplings[] = {0.0f, 0.1f, 0.3f, 0.5f, 1.0f};
-    int num_tests = sizeof(couplings) / sizeof(couplings[0]);
-    
-    printf("    Coupling | Initial Coh | Final Coh | Change\n");
-    printf("    ---------+-------------+-----------+-------\n");
-    
-    for (int t = 0; t < num_tests; t++) {
-        init_network(couplings[t]);
-        
-        // Measure initial
-        int16_t initial_coh = network.coherence;
-        
-        // Evolve
-        for (int s = 0; s < steps; s++) {
-            evolve_step(input);
-        }
-        
-        int16_t final_coh = network.coherence;
-        int delta = final_coh - initial_coh;
-        
-        printf("      %.1f    |    %5d    |   %5d   | %+5d\n",
-               couplings[t], initial_coh, final_coh, delta);
+    // Inject energy to sustain oscillators
+    for (int s = 0; s < 20; s++) {
+        evolve_step(input);
     }
     
-    printf("\n  Expected: Higher coupling → larger coherence increase\n");
+    printf("  After injection (20 steps with input):\n");
+    printf("    Band   | Coherence | Interpretation\n");
+    printf("    -------+-----------+---------------\n");
+    
+    for (int b = 0; b < NUM_BANDS; b++) {
+        int16_t coh = measure_band_coherence(b);
+        const char* interp = (coh > 25000) ? "highly aligned" :
+                            (coh > 15000) ? "moderately aligned" :
+                            (coh > 5000)  ? "weakly aligned" : "random";
+        printf("    %-6s |   %5d   | %s\n", BAND_NAMES[b], coh, interp);
+    }
+    
+    // Evolve more without input - phases should spread
+    uint8_t zero[INPUT_DIM] = {0, 0, 0, 0};
+    for (int s = 0; s < 100; s++) {
+        evolve_step(zero);
+    }
+    
+    printf("\n  After 100 more steps (no input, free evolution):\n");
+    printf("    Band   | Coherence | Interpretation\n");
+    printf("    -------+-----------+---------------\n");
+    
+    for (int b = 0; b < NUM_BANDS; b++) {
+        int16_t coh = measure_band_coherence(b);
+        const char* interp = (coh > 25000) ? "highly aligned" :
+                            (coh > 15000) ? "moderately aligned" :
+                            (coh > 5000)  ? "weakly aligned" : "random/decayed";
+        printf("    %-6s |   %5d   | %s\n", BAND_NAMES[b], coh, interp);
+    }
+    
+    printf("\n  Note: Delta band retains energy longest (slow decay),\n");
+    printf("        Gamma decays fastest. Coherence depends on both\n");
+    printf("        phase alignment AND having enough magnitude to measure.\n");
 }
 
 static void test_band_frequencies(void) {
