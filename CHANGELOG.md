@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-02-05
+
+### Hardware Falsification Complete
+
+All demos tested on actual ESP32-C6 hardware (ESP32-C6FH4, revision v0.2).
+
+**Test Results:**
+
+| Demo | Status | Details |
+|------|--------|---------|
+| 01 Pulse Addition | PASS | 8/8 tests, 1.11M pulses/sec |
+| 02 Parallel Dot | PASS | 5/5 tests, hardware matches reference exactly |
+| 03 Spectral Oscillator | PARTIAL | Band decay PASS, coupling coherence INCONCLUSIVE |
+| 04 Equilibrium Prop | PASS | Loss reduced 44%, 99.2% target separation |
+
+### Fixed
+
+- Demo 01: Reduced benchmark from 100k to 30k pulses to stay within PCNT 16-bit range
+- Added note about PCNT overflow limits
+
+### Known Issues
+
+- Demo 03 coupling coherence test methodology needs improvement (coherence metric
+  measures magnitude, not phase alignment)
+
 ## [0.1.0] - 2026-02-05
 
 ### Added
@@ -31,8 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Known Limitations
 
-- Demo 02-04 not yet build-tested (Demo 01 verified)
-- No hardware-in-loop testing yet
 - Reference NumPy implementations not yet added
 - Colab notebook not yet created
 

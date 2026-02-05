@@ -211,9 +211,11 @@ void app_main(void) {
     printf("----------------------------------------------------------------------\n");
     printf("  TEST 3: Throughput Benchmark\n");
     printf("----------------------------------------------------------------------\n");
+    printf("\n");
+    printf("  NOTE: PCNT is 16-bit signed (max 32767). We stay within limits.\n");
     
     clear_count();
-    int benchmark_pulses = 100000;
+    int benchmark_pulses = 30000;  // Stay under 32767 limit
     
     int64_t start = esp_timer_get_time();
     generate_pulses(benchmark_pulses);
@@ -228,7 +230,10 @@ void app_main(void) {
     printf("    Rate: %.0f pulses/second\n", pulses_per_sec);
     printf("    Final count: %d (expected %d)\n", final_count, benchmark_pulses);
     
-    if (final_count == benchmark_pulses) {
+    bool benchmark_pass = (final_count == benchmark_pulses);
+    printf("    Result: %s\n", benchmark_pass ? "PASS" : "FAIL");
+    
+    if (benchmark_pass) {
         tests_passed++;
     }
     tests_total++;
