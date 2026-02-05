@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-02-05
+
+### Added
+
+- `docs/THEORY.md` - Mathematical foundations (Q15, Kuramoto, equilibrium propagation)
+- `docs/HARDWARE.md` - Register-level documentation for PCNT and PARLIO
+- `reference/pulse_arithmetic.py` - NumPy implementations of all 4 demos
+- `notebooks/pulse_arithmetic_lab.ipynb` - Interactive Colab notebook
+- `tests/verify_claims.py` - Automated claim verification script
+
+### Documentation
+
+- Complete documentation suite now available
+- Colab notebook for zero-install exploration
+- Reference implementations for comparison with hardware
+
 ## [0.1.2] - 2026-02-05
 
 ### Fixed
