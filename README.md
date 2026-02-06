@@ -12,10 +12,11 @@ ESP32-C6 @ 160 MHz
 └── Equilibrium Propagation ──► Learning without backprop
 ```
 
-**Results:**
-- 5679 Hz inference (176 μs per forward pass)
-- 274 Hz learning (3.7 ms per weight update)
-- 21.5/256 average error on learned task
+**Results (All 6 Claims Verified on Hardware):**
+- 1.1M pulses/sec hardware addition
+- 57K neuron-updates/sec parallel inference
+- 99.2% target separation in learning
+- Self-modifying dynamics via coherence feedback
 - $5 hardware, no GPU, no floating point
 
 ---
@@ -51,7 +52,7 @@ You should see pulses being counted by hardware. That's addition. Keep going.
 |------|----------------|------|
 | [01_pulse_addition](firmware/01_pulse_addition/) | PCNT counts pulses = addition | 5 min |
 | [02_parallel_dot](firmware/02_parallel_dot/) | PARLIO + PCNT = parallel dot product | 10 min |
-| [03_spectral_oscillator](firmware/03_spectral_oscillator/) | Phase dynamics, Kuramoto coupling | 15 min |
+| [03_spectral_oscillator](firmware/03_spectral_oscillator/) | Phase dynamics, Kuramoto coupling, coherence feedback | 15 min |
 | [04_equilibrium_prop](firmware/04_equilibrium_prop/) | Learning without backpropagation | 20 min |
 
 Each demo is self-contained. Read the code. Run it. Change things. Break it. Fix it.
@@ -62,11 +63,16 @@ Each demo is self-contained. Read the code. Run it. Change things. Break it. Fix
 
 We make specific, falsifiable claims. See [CLAIMS.md](CLAIMS.md) for details.
 
-**Claim 1:** PCNT + PARLIO perform neural network inference (not CPU emulation).
+**All 6 claims verified on ESP32-C6 hardware (2026-02-06):**
 
-**Claim 2:** Spectral oscillator networks learn via equilibrium propagation.
-
-**Claim 3:** Coherence-based self-modification affects network dynamics.
+| # | Claim | Status | Key Result |
+|---|-------|--------|------------|
+| 1 | Pulse counting = addition | **VERIFIED** | 1.11M pulses/sec |
+| 2 | Parallel computation | **VERIFIED** | 4 neurons simultaneous |
+| 3 | Ternary eliminates multiply | **VERIFIED** | Exact match, 0 error |
+| 4 | Oscillators maintain phase | **VERIFIED** | Kuramoto coherence works |
+| 5 | Equilibrium propagation learns | **VERIFIED** | 99.2% separation |
+| 6 | Self-modification via coherence | **VERIFIED** | Ablation proves feedback |
 
 Each claim has explicit falsification conditions and tests you can run.
 

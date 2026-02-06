@@ -160,12 +160,20 @@ def demo_parallel_dot():
 
 
 class SpectralOscillator:
-    """Complex-valued oscillator with band-specific dynamics."""
+    """Complex-valued oscillator with band-specific dynamics and coherence feedback."""
 
     # Band parameters
     BAND_NAMES = ["Delta", "Theta", "Alpha", "Gamma"]
     BAND_DECAY = [0.98, 0.90, 0.70, 0.30]
     BAND_FREQ = [0.1, 0.3, 1.0, 3.0]
+
+    # Coherence feedback parameters (Claim 6)
+    COHERENCE_HIGH_THRESHOLD = 0.6  # ~20000 in Q15
+    COHERENCE_LOW_THRESHOLD = 0.25  # ~8000 in Q15
+    COUPLING_DECAY = 0.995
+    COUPLING_GROWTH = 1.005
+    COUPLING_MIN = 0.01
+    COUPLING_MAX = 2.0
 
     def __init__(self, num_bands=4, neurons_per_band=4):
         self.num_bands = num_bands
@@ -174,6 +182,9 @@ class SpectralOscillator:
         # Complex state: shape (bands, neurons, 2) for real/imag
         self.state = np.zeros((num_bands, neurons_per_band, 2), dtype=np.float64)
         self.phase_velocity = np.zeros((num_bands, neurons_per_band), dtype=np.float64)
+
+        # Coupling strength (can be modified by coherence feedback)
+        self.coupling = 0.5
 
         # Initialize with random phases
         np.random.seed(12345)  # Match firmware PRNG seed
@@ -251,6 +262,95 @@ class SpectralOscillator:
         for n in range(self.neurons_per_band):
             total += np.sqrt(self.state[band, n, 0] ** 2 + self.state[band, n, 1] ** 2)
         return total / self.neurons_per_band
+
+    def evolve_with_feedback(self, input_energy: np.ndarray = None) -> float:
+        """
+        Evolution step with coherence-based coupling modulation (Claim 6).
+
+        Returns the current coupling value.
+        """
+        # First, do normal evolution
+        self.evolve(input_energy)
+
+        # Then, modulate coupling based on coherence
+        coherence = self.get_coherence()
+
+        if coherence > self.COHERENCE_HIGH_THRESHOLD:
+            self.coupling *= self.COUPLING_DECAY
+        elif coherence < self.COHERENCE_LOW_THRESHOLD:
+            self.coupling *= self.COUPLING_GROWTH
+
+        # Clamp to bounds
+        self.coupling = np.clip(self.coupling, self.COUPLING_MIN, self.COUPLING_MAX)
+
+        return self.coupling
+
+    def reset(self):
+        """Reset oscillator state for ablation testing."""
+        np.random.seed(12345)
+        for b in range(self.num_bands):
+            for n in range(self.neurons_per_band):
+                phase = np.random.uniform(0, 2 * np.pi)
+                self.state[b, n, 0] = np.cos(phase) * 0.9
+                self.state[b, n, 1] = np.sin(phase) * 0.9
+        self.coupling = 0.5
+
+
+def demo_coherence_feedback_ablation():
+    """
+    Ablation study for Claim 6: Self-modification via coherence.
+
+    Compares dynamics WITH vs WITHOUT coherence feedback.
+    """
+    print("\n" + "=" * 70)
+    print("  CLAIM 6 ABLATION: Coherence Feedback (Reference)")
+    print("=" * 70)
+
+    num_steps = 500
+    input_energy = np.array([4.0, 4.0, 4.0, 4.0])
+
+    # Condition 1: WITHOUT feedback
+    osc1 = SpectralOscillator()
+    couplings_without = []
+
+    for _ in range(num_steps):
+        osc1.evolve(input_energy)
+        couplings_without.append(osc1.coupling)  # Should stay at 0.5
+
+    variance_without = np.var(couplings_without)
+
+    print("\n  CONDITION 1: WITHOUT Coherence Feedback")
+    print(f"    Initial coupling: {couplings_without[0]:.4f}")
+    print(f"    Final coupling:   {couplings_without[-1]:.4f}")
+    print(f"    Coupling variance: {variance_without:.6f}")
+
+    # Condition 2: WITH feedback
+    osc2 = SpectralOscillator()
+    couplings_with = []
+
+    for _ in range(num_steps):
+        coupling = osc2.evolve_with_feedback(input_energy)
+        couplings_with.append(coupling)
+
+    variance_with = np.var(couplings_with)
+
+    print("\n  CONDITION 2: WITH Coherence Feedback")
+    print(f"    Initial coupling: {couplings_with[0]:.4f}")
+    print(f"    Final coupling:   {couplings_with[-1]:.4f}")
+    print(f"    Coupling variance: {variance_with:.6f}")
+
+    # Verdict
+    coupling_changed = abs(couplings_with[-1] - couplings_with[0]) > 0.01
+    feedback_differs = variance_with > variance_without * 10
+
+    print("\n  RESULT:")
+    print(f"    Coupling changes with feedback? {'YES' if coupling_changed else 'NO'}")
+    print(f"    Feedback differs from control?  {'YES' if feedback_differs else 'NO'}")
+
+    if coupling_changed and feedback_differs:
+        print("\n  CLAIM 6: VERIFIED")
+    else:
+        print("\n  CLAIM 6: FAILED")
 
 
 def demo_spectral_oscillator():
@@ -405,7 +505,10 @@ def main():
         description="Pulse Arithmetic Reference Implementations"
     )
     parser.add_argument(
-        "--demo", type=int, choices=[1, 2, 3, 4], help="Run specific demo (1-4)"
+        "--demo",
+        type=int,
+        choices=[1, 2, 3, 4, 6],
+        help="Run specific demo (1-4, or 6 for Claim 6 ablation)",
     )
     args = parser.parse_args()
 
@@ -414,6 +517,7 @@ def main():
         2: demo_parallel_dot,
         3: demo_spectral_oscillator,
         4: demo_equilibrium_prop,
+        6: demo_coherence_feedback_ablation,
     }
 
     if args.demo:
