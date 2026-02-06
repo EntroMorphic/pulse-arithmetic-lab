@@ -185,6 +185,17 @@ static void init_network(float coupling_strength) {
 }
 
 // ============================================================
+// Coherence Feedback Parameters
+// ============================================================
+
+#define COHERENCE_HIGH_THRESHOLD    20000   // Above this: reduce coupling
+#define COHERENCE_LOW_THRESHOLD     8000    // Below this: increase coupling
+#define COUPLING_DECAY              0.995f  // Multiplicative reduction
+#define COUPLING_GROWTH             1.005f  // Multiplicative increase
+#define COUPLING_MIN                0.01f   // Floor
+#define COUPLING_MAX                2.0f    // Ceiling
+
+// ============================================================
 // Single Evolution Step
 // ============================================================
 
@@ -293,6 +304,61 @@ static void evolve_step(const uint8_t* input) {
     } else {
         network.coherence = 0;
     }
+}
+
+// ============================================================
+// Evolution Step WITH Coherence Feedback
+// ============================================================
+
+static void evolve_step_with_feedback(const uint8_t* input) {
+    // First, do normal evolution
+    evolve_step(input);
+    
+    // Then, modulate coupling based on coherence
+    // High coherence -> reduce coupling (prevent over-synchronization)
+    // Low coherence -> increase coupling (encourage coordination)
+    
+    float modifier = 1.0f;
+    
+    if (network.coherence > COHERENCE_HIGH_THRESHOLD) {
+        // Too synchronized - reduce coupling
+        modifier = COUPLING_DECAY;
+    } else if (network.coherence < COHERENCE_LOW_THRESHOLD) {
+        // Too desynchronized - increase coupling
+        modifier = COUPLING_GROWTH;
+    }
+    
+    // Apply to all cross-band couplings
+    for (int i = 0; i < NUM_BANDS; i++) {
+        for (int j = 0; j < NUM_BANDS; j++) {
+            if (i != j) {
+                network.coupling[i][j] *= modifier;
+                
+                // Clamp to valid range
+                if (network.coupling[i][j] < COUPLING_MIN) {
+                    network.coupling[i][j] = COUPLING_MIN;
+                }
+                if (network.coupling[i][j] > COUPLING_MAX) {
+                    network.coupling[i][j] = COUPLING_MAX;
+                }
+            }
+        }
+    }
+}
+
+// Get average coupling strength (for reporting)
+static float get_avg_coupling(void) {
+    float sum = 0.0f;
+    int count = 0;
+    for (int i = 0; i < NUM_BANDS; i++) {
+        for (int j = 0; j < NUM_BANDS; j++) {
+            if (i != j) {
+                sum += network.coupling[i][j];
+                count++;
+            }
+        }
+    }
+    return sum / count;
 }
 
 // ============================================================
@@ -459,6 +525,171 @@ static void run_benchmark(void) {
 }
 
 // ============================================================
+// CLAIM 6 ABLATION TEST: Self-Modification via Coherence
+// ============================================================
+
+static void test_coherence_feedback_ablation(void) {
+    printf("\n");
+    printf("======================================================================\n");
+    printf("  CLAIM 6 ABLATION: Self-Modification via Coherence\n");
+    printf("======================================================================\n");
+    printf("\n");
+    printf("  Testing: Does coherence feedback modify coupling strength?\n");
+    printf("  Method: Compare dynamics WITH vs WITHOUT feedback\n");
+    printf("\n");
+    
+    uint8_t input[INPUT_DIM] = {8, 8, 8, 8};
+    int steps = 500;
+    int sample_interval = 50;
+    
+    // ========== CONDITION 1: WITHOUT FEEDBACK ==========
+    printf("----------------------------------------------------------------------\n");
+    printf("  CONDITION 1: WITHOUT Coherence Feedback (control)\n");
+    printf("----------------------------------------------------------------------\n");
+    printf("\n");
+    
+    init_network(0.5f);  // Start with moderate coupling
+    float initial_coupling_no_fb = get_avg_coupling();
+    
+    printf("  Step | Coherence | Avg Coupling | Coupling Change\n");
+    printf("  -----+-----------+--------------+----------------\n");
+    
+    float coupling_no_fb[11];
+    int16_t coherence_no_fb[11];
+    int sample_idx = 0;
+    
+    coupling_no_fb[0] = initial_coupling_no_fb;
+    coherence_no_fb[0] = network.coherence;
+    printf("  %4d |   %5d   |    %.4f    |     ---\n", 
+           0, network.coherence, get_avg_coupling());
+    sample_idx++;
+    
+    for (int s = 1; s <= steps; s++) {
+        evolve_step(input);  // NO feedback
+        
+        if (s % sample_interval == 0 && sample_idx < 11) {
+            float curr_coupling = get_avg_coupling();
+            float change = curr_coupling - initial_coupling_no_fb;
+            printf("  %4d |   %5d   |    %.4f    |   %+.4f\n", 
+                   s, network.coherence, curr_coupling, change);
+            coupling_no_fb[sample_idx] = curr_coupling;
+            coherence_no_fb[sample_idx] = network.coherence;
+            sample_idx++;
+        }
+    }
+    
+    float final_coupling_no_fb = get_avg_coupling();
+    float total_change_no_fb = final_coupling_no_fb - initial_coupling_no_fb;
+    
+    // ========== CONDITION 2: WITH FEEDBACK ==========
+    printf("\n");
+    printf("----------------------------------------------------------------------\n");
+    printf("  CONDITION 2: WITH Coherence Feedback (experimental)\n");
+    printf("----------------------------------------------------------------------\n");
+    printf("\n");
+    
+    init_network(0.5f);  // Same initial conditions
+    float initial_coupling_with_fb = get_avg_coupling();
+    
+    printf("  Step | Coherence | Avg Coupling | Coupling Change\n");
+    printf("  -----+-----------+--------------+----------------\n");
+    
+    float coupling_with_fb[11];
+    int16_t coherence_with_fb[11];
+    sample_idx = 0;
+    
+    coupling_with_fb[0] = initial_coupling_with_fb;
+    coherence_with_fb[0] = network.coherence;
+    printf("  %4d |   %5d   |    %.4f    |     ---\n", 
+           0, network.coherence, get_avg_coupling());
+    sample_idx++;
+    
+    for (int s = 1; s <= steps; s++) {
+        evolve_step_with_feedback(input);  // WITH feedback
+        
+        if (s % sample_interval == 0 && sample_idx < 11) {
+            float curr_coupling = get_avg_coupling();
+            float change = curr_coupling - initial_coupling_with_fb;
+            printf("  %4d |   %5d   |    %.4f    |   %+.4f\n", 
+                   s, network.coherence, curr_coupling, change);
+            coupling_with_fb[sample_idx] = curr_coupling;
+            coherence_with_fb[sample_idx] = network.coherence;
+            sample_idx++;
+        }
+    }
+    
+    float final_coupling_with_fb = get_avg_coupling();
+    float total_change_with_fb = final_coupling_with_fb - initial_coupling_with_fb;
+    
+    // ========== ANALYSIS ==========
+    printf("\n");
+    printf("----------------------------------------------------------------------\n");
+    printf("  ABLATION RESULTS\n");
+    printf("----------------------------------------------------------------------\n");
+    printf("\n");
+    
+    printf("  Metric                    | WITHOUT FB | WITH FB  | Difference\n");
+    printf("  --------------------------+------------+----------+-----------\n");
+    printf("  Initial coupling          |   %.4f   |  %.4f  |    ---\n",
+           initial_coupling_no_fb, initial_coupling_with_fb);
+    printf("  Final coupling            |   %.4f   |  %.4f  |  %+.4f\n",
+           final_coupling_no_fb, final_coupling_with_fb,
+           final_coupling_with_fb - final_coupling_no_fb);
+    printf("  Total coupling change     |  %+.4f   | %+.4f  |  %+.4f\n",
+           total_change_no_fb, total_change_with_fb,
+           total_change_with_fb - total_change_no_fb);
+    
+    // Calculate coupling variance (did it actually change?)
+    float var_no_fb = 0, var_with_fb = 0;
+    for (int i = 0; i < 11; i++) {
+        var_no_fb += (coupling_no_fb[i] - initial_coupling_no_fb) * 
+                     (coupling_no_fb[i] - initial_coupling_no_fb);
+        var_with_fb += (coupling_with_fb[i] - initial_coupling_with_fb) * 
+                       (coupling_with_fb[i] - initial_coupling_with_fb);
+    }
+    var_no_fb /= 11;
+    var_with_fb /= 11;
+    
+    printf("  Coupling variance         |  %.6f  | %.6f |  %+.6f\n",
+           var_no_fb, var_with_fb, var_with_fb - var_no_fb);
+    
+    printf("\n");
+    
+    // ========== VERDICT ==========
+    bool coupling_changed = (var_with_fb > var_no_fb * 10) || 
+                           (fabsf(total_change_with_fb) > 0.01f);
+    bool feedback_different = fabsf(final_coupling_with_fb - final_coupling_no_fb) > 0.01f;
+    
+    printf("----------------------------------------------------------------------\n");
+    printf("  CLAIM 6 VERIFICATION\n");
+    printf("----------------------------------------------------------------------\n");
+    printf("\n");
+    printf("  Claim: The network modifies its own coupling based on coherence.\n");
+    printf("\n");
+    printf("  Test 1: Coupling changes with feedback?      %s\n", 
+           coupling_changed ? "YES" : "NO");
+    printf("  Test 2: Feedback produces different result?  %s\n",
+           feedback_different ? "YES" : "NO");
+    printf("\n");
+    
+    if (coupling_changed && feedback_different) {
+        printf("  RESULT: CLAIM 6 VERIFIED\n");
+        printf("\n");
+        printf("  The coherence feedback loop causes self-modification:\n");
+        printf("  - High coherence reduces coupling (prevents over-sync)\n");
+        printf("  - Low coherence increases coupling (encourages coordination)\n");
+        printf("  - This creates homeostatic regulation of network dynamics\n");
+    } else if (coupling_changed) {
+        printf("  RESULT: PARTIAL - Coupling changes but effect unclear\n");
+    } else {
+        printf("  RESULT: CLAIM 6 FALSIFIED\n");
+        printf("\n");
+        printf("  Coupling did not change meaningfully with feedback.\n");
+    }
+    printf("\n");
+}
+
+// ============================================================
 // Main
 // ============================================================
 
@@ -487,6 +718,9 @@ void app_main(void) {
     test_coupling_effect();
     run_benchmark();
     
+    // Run Claim 6 ablation test
+    test_coherence_feedback_ablation();
+    
     // Summary
     printf("\n");
     printf("======================================================================\n");
@@ -498,6 +732,7 @@ void app_main(void) {
     printf("    2. Decay rates vary by band (Gamma=fast, Delta=slow)\n");
     printf("    3. Kuramoto coupling increases synchronization\n");
     printf("    4. Coherence measures global synchronization\n");
+    printf("    5. Coherence feedback modulates coupling (Claim 6)\n");
     printf("\n");
     printf("  This is the state representation for neural dynamics.\n");
     printf("  Next: 04_equilibrium_prop - add learning!\n");
