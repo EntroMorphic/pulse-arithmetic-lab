@@ -329,6 +329,43 @@ Therefore, Pulse Arithmetic Lab satisfies Definition 2. ∎
 
 ---
 
+## Falsification Results (2026-02-06)
+
+We ran systematic falsification experiments. **Honesty requires reporting that
+several conditions were met.**
+
+### Summary
+
+| Test | Result | Implication |
+|------|--------|-------------|
+| F1 Reducibility | **FALSIFIED** | ~10K states visited; effective state space is finite |
+| F2 Separability | **FALSIFIED** | One-step delay in feedback produces equivalent results |
+| F3 Phase Causality | **NOT FALSIFIED** | Different phases → 0.75 divergence in coupling |
+| F4 Simulation | **FALSIFIED** | O(n) simulation with band-local coupling |
+
+### What This Means
+
+**The full PG-ETM claim is weakened.** We cannot claim unlimited continuous
+state or asymptotic complexity advantage with the current implementation.
+
+**However, F3 survives:** Different initial phases lead to divergent discrete
+outcomes (coupling diverges by 0.75 on average). This demonstrates that
+continuous state (phase) causally affects discrete state (coupling).
+
+### Revised Claim
+
+> Pulse Arithmetic Lab demonstrates **phase-causal computation**: continuous
+> oscillator phases causally affect discrete network parameters, though the
+> current implementation does not exploit the full theoretical potential of
+> continuous state space.
+
+This is weaker than full PG-ETM but still novel:
+- Phase information matters (F3 not falsified)
+- The architecture could support stronger claims with all-to-all coupling
+- The theoretical framework is sound; the implementation is limited
+
+---
+
 ## Falsification Conditions
 
 The ETM claim is **FALSE** if any of the following are demonstrated:
