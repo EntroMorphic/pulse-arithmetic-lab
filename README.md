@@ -1,8 +1,8 @@
 # Pulse Arithmetic Lab
 
-**Hardware neural computation on a $5 microcontroller.**
+**A Physics-Grounded Extended Turing Machine on a $5 microcontroller.**
 
-Pulse counters do addition. Parallel I/O enables parallelism. Oscillators encode state in phase. Learning emerges from running the same physics twice.
+Pulse counters do addition. Parallel I/O enables parallelism. Oscillators encode state in phase. Learning emerges from running the same physics twice. The result: a novel computational substrate where discrete logic and continuous dynamics interact.
 
 ```
 ESP32-C6 @ 160 MHz
@@ -73,6 +73,9 @@ We make specific, falsifiable claims. See [CLAIMS.md](CLAIMS.md) for details.
 | 4 | Oscillators maintain phase | **VERIFIED** | Kuramoto coherence works |
 | 5 | Equilibrium propagation learns | **VERIFIED** | 99.2% separation |
 | 6 | Self-modification via coherence | **VERIFIED** | Ablation proves feedback |
+
+**Meta-claim:** These components constitute a **Physics-Grounded Extended Turing Machine**.
+See [docs/ETM.md](docs/ETM.md) for the formal argument and falsification conditions.
 
 Each claim has explicit falsification conditions and tests you can run.
 

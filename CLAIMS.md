@@ -8,7 +8,7 @@ This document states our claims explicitly and provides falsification conditions
 
 ## Falsification Status (2026-02-06)
 
-All claims tested on ESP32-C6FH4 (rev v0.2) with ESP-IDF v5.4.
+All component claims tested on ESP32-C6FH4 (rev v0.2) with ESP-IDF v5.4.
 
 | Claim | Status | Result |
 |-------|--------|--------|
@@ -18,6 +18,7 @@ All claims tested on ESP32-C6FH4 (rev v0.2) with ESP-IDF v5.4.
 | 4. Oscillators maintain phase | **VERIFIED** | Delta band coherence 23710, proper decay rates |
 | 5. Equilibrium propagation learns | **VERIFIED** | 99.2% target separation achieved |
 | 6. Coherence self-modification | **VERIFIED** | Ablation study: coupling variance 0 vs 1.16 |
+| **ETM (meta-claim)** | **NOT FALSIFIED** | See [docs/ETM.md](docs/ETM.md) |
 
 ---
 
@@ -377,16 +378,71 @@ based on the network's coherence state.
 
 ---
 
+## Meta-Claim: Extended Turing Machine
+
+The six claims above demonstrate individual components. The **meta-claim** is that
+together they constitute something novel:
+
+> **Pulse Arithmetic Lab implements a Physics-Grounded Extended Turing Machine
+> (PG-ETM) on commodity hardware.**
+
+See [docs/ETM.md](docs/ETM.md) for the formal theoretical argument.
+
+### What is a PG-ETM?
+
+An Extended Turing Machine adds continuous state to the standard discrete model:
+- **C** = continuous state space (oscillator phases)
+- **φ** = dynamics (Kuramoto coupling)
+- **ψ** = discrete-continuous coupling (coherence feedback)
+
+A **Physics-Grounded** ETM requires:
+1. Physical interpretation of continuous state
+2. Physical dynamics (not arbitrary ODEs)
+3. Bidirectional coupling between discrete and continuous
+4. Realizability in physical hardware
+
+### ETM Falsification Conditions
+
+The ETM claim is **FALSE** if ANY of the following are demonstrated:
+
+| ID | Condition | Test |
+|----|-----------|------|
+| F1 | **Reducibility** | Oscillator dynamics can be replaced by polynomial-size lookup table |
+| F2 | **Separability** | Discrete and continuous components can be factored with no interaction |
+| F3 | **Triviality** | Constant coupling K achieves identical outcomes to coherence feedback |
+| F4 | **Simulation equivalence** | Standard TM simulates system with only polynomial overhead |
+
+### Current Status
+
+| Condition | Status | Evidence |
+|-----------|--------|----------|
+| F1 Reducibility | **NOT FALSIFIED** | Kuramoto dynamics are nonlinear; no known polynomial reduction |
+| F2 Separability | **NOT FALSIFIED** | Coherence feedback creates measured coupling (Claim 6) |
+| F3 Triviality | **UNTESTED** | Requires comparison with oracle-tuned constant K |
+| F4 Simulation | **PARTIALLY ADDRESSED** | Physical parallelism provides O(1) vs O(n²) coherence |
+
+**The ETM claim stands until falsified.**
+
+---
+
 ## Summary Table
 
-| Claim | Test | Success Criterion |
-|-------|------|-------------------|
-| 1. Pulse counting = addition | 01_pulse_addition | PCNT = expected count |
-| 2. Parallel computation | 02_parallel_dot | ~4x speedup |
-| 3. Ternary eliminates multiply | 02_parallel_dot verify | <1% error vs reference |
-| 4. Oscillators maintain phase | 03_spectral_oscillator | Coherence increases with coupling |
-| 5. Equilibrium propagation learns | 04_equilibrium_prop | Separation >78% of target |
-| 6. Coherence self-modification | 03_spectral_oscillator ablation | Coupling changes with feedback |
+### Component Claims (All Verified)
+
+| Claim | Test | Success Criterion | Status |
+|-------|------|-------------------|--------|
+| 1. Pulse counting = addition | 01_pulse_addition | PCNT = expected count | **VERIFIED** |
+| 2. Parallel computation | 02_parallel_dot | ~4x speedup | **VERIFIED** |
+| 3. Ternary eliminates multiply | 02_parallel_dot verify | <1% error vs reference | **VERIFIED** |
+| 4. Oscillators maintain phase | 03_spectral_oscillator | Coherence increases with coupling | **VERIFIED** |
+| 5. Equilibrium propagation learns | 04_equilibrium_prop | Separation >78% of target | **VERIFIED** |
+| 6. Coherence self-modification | 03_spectral_oscillator ablation | Coupling changes with feedback | **VERIFIED** |
+
+### Meta-Claim (Open)
+
+| Claim | Falsification Conditions | Status |
+|-------|-------------------------|--------|
+| PG-ETM | F1, F2, F3, F4 (see above) | **NOT YET FALSIFIED** |
 
 ---
 
