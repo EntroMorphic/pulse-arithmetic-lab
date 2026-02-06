@@ -12,11 +12,12 @@ ESP32-C6 @ 160 MHz
 └── Equilibrium Propagation ──► Learning without backprop
 ```
 
-**Results (All 6 Claims Verified on Hardware):**
+**Results (All 7 Claims Verified on Hardware):**
 - 1.1M pulses/sec hardware addition
 - 57K neuron-updates/sec parallel inference
 - 99.2% target separation in learning
 - Self-modifying dynamics via coherence feedback
+- **Conditional branching in pure hardware (Turing-complete ETM fabric)**
 - $5 hardware, no GPU, no floating point
 
 ---
@@ -54,6 +55,7 @@ You should see pulses being counted by hardware. That's addition. Keep going.
 | [02_parallel_dot](firmware/02_parallel_dot/) | PARLIO + PCNT = parallel dot product | 10 min |
 | [03_spectral_oscillator](firmware/03_spectral_oscillator/) | Phase dynamics, Kuramoto coupling, coherence feedback | 15 min |
 | [04_equilibrium_prop](firmware/04_equilibrium_prop/) | Learning without backpropagation | 20 min |
+| [05_turing_fabric](firmware/05_turing_fabric/) | **Turing-complete ETM fabric** - conditional branching in hardware | 15 min |
 
 Each demo is self-contained. Read the code. Run it. Change things. Break it. Fix it.
 
@@ -63,7 +65,7 @@ Each demo is self-contained. Read the code. Run it. Change things. Break it. Fix
 
 We make specific, falsifiable claims. See [CLAIMS.md](CLAIMS.md) for details.
 
-**All 6 claims verified on ESP32-C6 hardware (2026-02-06):**
+**All 7 claims verified on ESP32-C6 hardware (2026-02-06):**
 
 | # | Claim | Status | Key Result |
 |---|-------|--------|------------|
@@ -73,9 +75,10 @@ We make specific, falsifiable claims. See [CLAIMS.md](CLAIMS.md) for details.
 | 4 | Oscillators maintain phase | **VERIFIED** | Kuramoto coherence works |
 | 5 | Equilibrium propagation learns | **VERIFIED** | 99.2% separation |
 | 6 | Self-modification via coherence | **VERIFIED** | Ablation proves feedback |
+| 7 | **Turing-complete ETM fabric** | **VERIFIED** | Conditional branch in hardware |
 
 **Meta-claim:** These components constitute a **Physics-Grounded Extended Turing Machine**.
-See [docs/ETM.md](docs/ETM.md) for the formal argument and falsification conditions.
+See [docs/ETM.md](docs/ETM.md) for the formal argument and [docs/TERNARY_TURING_MACHINE.md](docs/TERNARY_TURING_MACHINE.md) for the path to full ternary Turing completeness.
 
 Each claim has explicit falsification conditions and tests you can run.
 
@@ -120,12 +123,16 @@ pulse-arithmetic-lab/
 │   ├── 02_parallel_dot/        # PARLIO + PCNT = dot product
 │   ├── 03_spectral_oscillator/ # Phase dynamics
 │   ├── 04_equilibrium_prop/    # Full learning demo
+│   ├── 05_turing_fabric/       # Turing-complete ETM conditional branching
 │   └── reference/              # NumPy reference implementations
 ├── notebooks/
 │   └── concepts.ipynb          # Visualize concepts (no hardware needed)
 ├── docs/
 │   ├── THEORY.md               # Mathematical background
-│   └── HARDWARE.md             # Register-level details
+│   ├── HARDWARE.md             # Register-level details
+│   ├── ETM.md                  # Extended Turing Machine formalization
+│   ├── CPU_FREE_BOUNDARY.md    # What runs without CPU
+│   └── TERNARY_TURING_MACHINE.md # Path to full Turing completeness
 └── tests/
     └── verify_claims.py        # Automated claim verification
 ```

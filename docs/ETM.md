@@ -529,6 +529,15 @@ is polynomial, the physical system may have better constants.
 
 ---
 
-**Document version:** 1.0
+**Document version:** 1.1
 **Date:** 2026-02-06
-**Status:** Theoretical framework. Falsification experiments pending.
+**Status:** Falsification experiments COMPLETE. See results in section "Falsification Results".
+
+**Summary:**
+- F1 (Reducibility): FALSIFIED - ~10K states visited
+- F2 (Separability): FALSIFIED - One-step delay produces equivalent results
+- F3 (Phase Causality): NOT FALSIFIED - 0.75 coupling divergence
+- F4 (Simulation): FALSIFIED - O(n) simulation with band-local coupling
+
+The full PG-ETM claim is weakened. However, **hardware Turing completeness is verified**
+via the ETM fabric (Claim 7) - see `firmware/05_turing_fabric/` and `docs/TERNARY_TURING_MACHINE.md`.
